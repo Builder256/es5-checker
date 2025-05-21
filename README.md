@@ -23,7 +23,7 @@
 ## 開発・動作環境
 - HTML5, JavaScript (ES5), [Acorn.js](https://github.com/acornjs/acorn)（CDN経由）
 - CSSフレームワーク: [Beer CSS](https://www.beercss.com/)
-- モダンなWebブラウザ（デスクトップ推奨）
+- Chromium 136
 
 ## ファイル構成
 - `index.html` : メインのHTML・JavaScriptコード
