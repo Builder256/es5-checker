@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <title>ES5構文チェッカー</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- Beer CSS & Material Icons -->
+        <link href="https://cdn.jsdelivr.net/npm/beercss@3.11.2/dist/cdn/beer.min.css" rel="stylesheet" />
+        <script src="https://cdn.jsdelivr.net/npm/acorn@8.14.1/dist/acorn.min.js"></script>
+        <style>
+            h1 {
+                font-size: 32px;
+            }
+            h2 {
+                font-size: 24px;
+            }
+            ul > li {
+                font-size: 16px;
+            }
+            p,
+            ol > li {
+                font-size: 20px;
+            }
+            #code-wrapper {
+                height: 40vh;
+            }
+            #code {
+                height: 40vh;
+            }
+            .highlight {
+                background: #ffebee;
+                color: #d32f2f;
+                font-weight: bold;
+            }
+            .drag-drop {
+                border: 2px dashed var(--primary-container);
+                padding: 2em 1em;
+                text-align: center;
+                color: var(--on-surface-variant);
+                background: var(--surface-container);
+                transition: border-color 0.2s, background 0.2s;
+                cursor: pointer;
+            }
+            .drag-drop.dragover {
+                border-color: var(--primary);
+                background: var(--primary-container);
+                color: var(--primary);
+            }
+        </style>
+    </head>
+    <body class="light">
+        <main class="responsive">
+            <h1 class="center-align">ES5構文チェッカー</h1>
+            <p>入力されたJavaScriptが、ECMAScript 5.1までで定義されている構文のみを使用しているかを検証します。</p>
+            <h2>注意事項</h2>
+
+            <ul>
+                <li>
+                    このツールでできることは、あくまでも構文の検証です。その他の問題は検出されません。また、一部検出されない構文エラーがある可能性があります。
+                </li>
+                <li>このツールで検出される構文エラーは、1か所のみです。複数個所のエラーがあった場合にも1つしか検出されません。</li>
+                <li>このツールは、RealTrainModのスクリプト向けです。他の用途でも利用できる可能性はありますが、保証は行いません。</li>
+                <li>このツールは、一般的なデスクトップ端末での利用を想定しています。</li>
+                <li>このツールでは、JavaScriptを使用しています。利用するには、JavaScriptを有効化する必要があります。</li>
+                <li>スクリプトの検証は、完全に端末内で行われ、入力された内容が外部へ送信されることはありません。</li>
+                <li>このツールを利用したことによって発生した損害やその他の問題に、作者は一切責任を負いません。</li>
+                <li>このツールを利用した時点で、これら注意事項に同意したとみなします。</li>
+            </ul>
+            <h2>使い方</h2>
+            <ol>
+                <li>スクリプトファイルをアップロード、またはスクリプトの文字列を貼り付け</li>
+                <li>検証</li>
+                <li>結果が表示されます</li>
+            </ol>
+
+            <form id="form" autocomplete="off">
+                <div class="grid">
+                    <!-- ドラッグアンドドロップエリア -->
+                    <div id="dragDrop" class="drag-drop round s12">
+                        <i class="" style="vertical-align: middle">upload</i>
+                        ここにファイルをドラッグ＆ドロップ
+                        <input type="file" id="fileInput" accept=".js,.txt" style="display: none" />
+                    </div>
+
+                    <!-- アップロードしたファイルをリセット -->
+                    <button id="resetFile" class="responsive border round primary-border primary-text s12 m6">
+                        <i>refresh</i>
+                        <span>ファイルをリセット</span>
+                    </button>
+
+                    <!-- ファイル選択ボタン -->
+                    <button id="selectFile" class="responsive s12 m6">
+                        <i>description</i>
+                        <span>ファイルを選択</span>
+                    </button>
+                    <input id="filename" type="text" readonly style="display: none" />
+
+                    <!-- テキストエリア -->
+                    <div class="field textarea label prefix extra fill round s12 m6" id="code-wrapper">
+                        <i>code</i>
+                        <textarea id="code" rows="500" placeholder=""></textarea>
+                        <label for="code">ここにスクリプトを貼り付け</label>
+                    </div>
+
+                    <!-- 結果 -->
+                    <article class="s12 m6">
+                        <div id="result">
+                            <h5><i class="extra">search_check</i>解析結果</h5>
+                        </div>
+                    </article>
+
+                    <!-- 解析結果リセット -->
+                    <button id="resetResult" class="responsive border round primary-border primary-text s12 m6">
+                        <i>refresh</i>
+                        <span>結果をリセット</span>
+                    </button>
+
+                    <!-- 検証ボタン -->
+                    <button class="responsive s12 m6" type="submit" id="checkBtn">
+                        <i>check_circle</i>
+                        <span>ファイルを検証</span>
+                    </button>
+                </div>
+            </form>
+        </main>
+        <script>
+            const dragDrop = document.getElementById('dragDrop');
+            const fileInput = document.getElementById('fileInput');
+            const codeArea = document.getElementById('code');
+            const filenameField = document.getElementById('filename');
+            const result = document.getElementById('result');
+            const selectFileBtn = document.getElementById('selectFile');
+            const resetFileBtn = document.getElementById('resetFile');
+            const resetResultBtn = document.getElementById('resetResult');
+
+            // 結果の初期表示
+            const defaultResult = result.innerHTML;
+
+            // ファイル選択クリック (ドラッグエリアとファイル選択ボタン)
+            dragDrop.addEventListener('click', () => fileInput.click());
+            selectFileBtn.addEventListener('click', () => fileInput.click());
+
+            // ファイルリセット
+            resetFileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                fileInput.value = '';
+                filenameField.value = '';
+                codeArea.value = '';
+                lastFileName = '';
+            });
+
+            // 結果リセット
+            resetResultBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                result.innerHTML = defaultResult;
+            });            // エンコーディング検出とファイル読み込み
+            async function readFileWithEncoding(file) {
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                
+                // UTF-8とShift-JISの判定
+                let isUtf8 = true;
+                let i = 0;
+                while (i < bytes.length) {
+                    if (bytes[i] < 0x80) { // ASCII
+                        i++;
+                    } else if (bytes[i] >= 0xC2 && bytes[i] <= 0xDF) { // 2バイト文字
+                        if (i + 1 >= bytes.length || bytes[i + 1] < 0x80 || bytes[i + 1] > 0xBF) {
+                            isUtf8 = false;
+                            break;
+                        }
+                        i += 2;
+                    } else if (bytes[i] >= 0xE0 && bytes[i] <= 0xEF) { // 3バイト文字
+                        if (i + 2 >= bytes.length || 
+                            bytes[i + 1] < 0x80 || bytes[i + 1] > 0xBF ||
+                            bytes[i + 2] < 0x80 || bytes[i + 2] > 0xBF) {
+                            isUtf8 = false;
+                            break;
+                        }
+                        i += 3;
+                    } else {
+                        isUtf8 = false;
+                        break;
+                    }
+                }
+
+                try {
+                    // まずUTF-8で試す
+                    if (isUtf8) {
+                        const decoder = new TextDecoder('utf-8');
+                        return decoder.decode(buffer);
+                    }
+                    // UTF-8で失敗したらShift-JISで試す
+                    const decoder = new TextDecoder('shift-jis');
+                    return decoder.decode(buffer);
+                } catch (e) {
+                    // どちらも失敗した場合はUTF-8で強制的に読み込む
+                    const decoder = new TextDecoder('utf-8');
+                    return decoder.decode(buffer);
+                }
+            }
+
+            // ファイル選択
+            fileInput.addEventListener('change', async (e) => {
+                if (e.target.files.length) {
+                    const file = e.target.files[0];
+                    lastFileName = file.name;
+                    filenameField.value = file.name;
+                    try {
+                        const content = await readFileWithEncoding(file);
+                        codeArea.value = content;
+                        codeArea.dispatchEvent(new Event('input'));
+                    } catch (err) {
+                        result.innerHTML = '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
+                    }
+                }
+            });
+
+            // ドラッグ＆ドロップ
+            dragDrop.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dragDrop.classList.add('dragover');
+            });
+
+            dragDrop.addEventListener('dragleave', (e) => {
+                dragDrop.classList.remove('dragover');
+            });            dragDrop.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                dragDrop.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    const file = e.dataTransfer.files[0];
+                    lastFileName = file.name;
+                    filenameField.value = file.name;
+                    try {
+                        const content = await readFileWithEncoding(file);
+                        codeArea.value = content;
+                        codeArea.dispatchEvent(new Event('input'));
+                    } catch (err) {
+                        result.innerHTML = '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
+                    }
+                }
+            });
+
+            // チェックボタン
+            document.getElementById('form').onsubmit = function (e) {
+                e.preventDefault();
+                result.innerHTML = '';
+                const code = codeArea.value;
+                if (!code.trim()) {
+                    result.innerHTML = '<div class="error-text"><h5><i>error</i>エラー</h5><p>コードが入力されていません</p></div>';
+                    return;
+                }
+                try {
+                    acorn.parse(code, { ecmaVersion: 5 });
+                    result.innerHTML = '<div class="success-text"><h5><i>check_circle</i>成功</h5><p>構文エラーは見つかりませんでした</p></div>';
+                } catch (e) {
+                    let msg = '<div class="error-text"><h5><i>error</i>エラー</h5>';
+                    msg += `<p>構文エラーが見つかりました: ${e.message}</p>`;
+                    if (e.loc) {
+                        const line = e.loc.line;
+                        const column = e.loc.column;
+                        msg += `<p>エラーが発見された位置: ${line}行目, ${column}列目</p>`;
+                        const lines = code.split('\n');
+                        if (lines[line - 1]) {
+                            const errorLine = lines[line - 1];
+                            const highlighted = errorLine.slice(0, column - 1) + '<span class="highlight">' + errorLine.slice(column - 1) + '</span>';
+                            msg += `<div class="row scroll"><pre>${highlighted}</pre></div>`;
+                        }
+                    }
+                    msg += '</div>';
+                    result.innerHTML = msg;
+                }
+            };
+        </script>
+    </body>
+</html>
