@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
-    <head>
+    <head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# website: http://ogp.me/ns/website#">
         <meta charset="UTF-8" />
-        <title>ES5構文チェッカー</title>
+        <title>ES5構文チェッカー（RTM向け）</title>
+        <meta name="description" content="JavaScriptがECMAScript 5.1までの構文のみかを検証できるWebツール。ファイルアップロードや貼り付けに対応。（RTM向け）" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <!-- Beer CSS & Material Icons -->
         <link href="https://cdn.jsdelivr.net/npm/beercss@3.11.2/dist/cdn/beer.min.css" rel="stylesheet" />
@@ -47,6 +48,22 @@
                 color: var(--primary);
             }
         </style>
+        <!-- OGP・SNS用メタタグ -->
+        <meta property="og:title" content="ES5構文チェッカー（RTM向け）" />
+        <meta
+            property="og:description"
+            content="JavaScriptがECMAScript 5.1までの構文のみかを検証できるWebツール。ファイルアップロードや貼り付けに対応。（RTM向け）"
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://builder256.github.io/es5-checker/" />
+        <!-- <meta property="og:image" content="https://your-domain.example.com/ogp.png" /> -->
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:site" content="7_speed_PDK" />
+        <meta name="twitter:title" content="ES5構文チェッカー（RTM向け）" />
+        <meta name="twitter:description" content="JavaScriptがECMAScript 5.1までの構文のみかを検証できるWebツール。RTM向け" />
+        <!-- <meta name="twitter:image" content="https://your-domain.example.com/ogp.png" /> -->
+        <!-- ファビコン -->
+        <!-- <link rel="icon" type="image/png" href="favicon.png" /> -->
     </head>
     <body class="light">
         <main class="responsive">
@@ -153,27 +170,28 @@
             resetResultBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 result.innerHTML = defaultResult;
-            });            // エンコーディング検出とファイル読み込み
+            }); // エンコーディング検出とファイル読み込み
             async function readFileWithEncoding(file) {
                 const buffer = await file.arrayBuffer();
                 const bytes = new Uint8Array(buffer);
-                
+
                 // UTF-8とShift-JISの判定
                 let isUtf8 = true;
                 let i = 0;
                 while (i < bytes.length) {
-                    if (bytes[i] < 0x80) { // ASCII
+                    if (bytes[i] < 0x80) {
+                        // ASCII
                         i++;
-                    } else if (bytes[i] >= 0xC2 && bytes[i] <= 0xDF) { // 2バイト文字
-                        if (i + 1 >= bytes.length || bytes[i + 1] < 0x80 || bytes[i + 1] > 0xBF) {
+                    } else if (bytes[i] >= 0xc2 && bytes[i] <= 0xdf) {
+                        // 2バイト文字
+                        if (i + 1 >= bytes.length || bytes[i + 1] < 0x80 || bytes[i + 1] > 0xbf) {
                             isUtf8 = false;
                             break;
                         }
                         i += 2;
-                    } else if (bytes[i] >= 0xE0 && bytes[i] <= 0xEF) { // 3バイト文字
-                        if (i + 2 >= bytes.length || 
-                            bytes[i + 1] < 0x80 || bytes[i + 1] > 0xBF ||
-                            bytes[i + 2] < 0x80 || bytes[i + 2] > 0xBF) {
+                    } else if (bytes[i] >= 0xe0 && bytes[i] <= 0xef) {
+                        // 3バイト文字
+                        if (i + 2 >= bytes.length || bytes[i + 1] < 0x80 || bytes[i + 1] > 0xbf || bytes[i + 2] < 0x80 || bytes[i + 2] > 0xbf) {
                             isUtf8 = false;
                             break;
                         }
@@ -211,7 +229,8 @@
                         codeArea.value = content;
                         codeArea.dispatchEvent(new Event('input'));
                     } catch (err) {
-                        result.innerHTML = '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
+                        result.innerHTML =
+                            '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
                     }
                 }
             });
@@ -224,7 +243,8 @@
 
             dragDrop.addEventListener('dragleave', (e) => {
                 dragDrop.classList.remove('dragover');
-            });            dragDrop.addEventListener('drop', async (e) => {
+            });
+            dragDrop.addEventListener('drop', async (e) => {
                 e.preventDefault();
                 dragDrop.classList.remove('dragover');
                 if (e.dataTransfer.files.length) {
@@ -236,7 +256,8 @@
                         codeArea.value = content;
                         codeArea.dispatchEvent(new Event('input'));
                     } catch (err) {
-                        result.innerHTML = '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
+                        result.innerHTML =
+                            '<div class="error-text"><h5><i>error</i>エラー</h5><p>ファイルの読み込みに失敗しました: ' + err.message + '</p></div>';
                     }
                 }
             });
